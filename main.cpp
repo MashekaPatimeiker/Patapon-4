@@ -12,16 +12,16 @@ RenderWindow InitWindow();
 Texture LoadTexture(const std::string& filePath);
 Font LoadFont(const std::string& filePath);
 Text InitText(const Font& font, const std::string& str, int size, Color color, float x, float y);
-void isGoing(RenderWindow& window, Sprite& backgroundSprite, Text& text, std::vector<Text>& buttonLabels, Music& music);
+void isGoing(RenderWindow& window, const Sprite& backgroundSprite, const Text& text, std::vector<Text>& buttonLabels, Music& music);
 void CreateLabels(float height, const Font& font, std::vector<Text>& buttonLabels);
 void StartNewGame(RenderWindow& window, Music& music);
-void MoveUnits(Sprite unitSprites[], int unitCount, float distance);
-void MoveUnitsBackward(Sprite unitSprites[], int unitCount, float distance);
-void LoadBackground(RenderWindow& window, Sprite& backgroundSprite);
-void CreateUnits(Texture& pngTexture, Sprite unitSprites[], int unitCount, float scaleFactor, float height);
-void DrawUnits(RenderWindow& window, Sprite unitSprites[], int unitCount);
+void MoveUnits(Sprite& spearMan, int unitCount, float distance);
+void MoveUnitsBackward(Sprite& spearMan, int unitCount, float distance);
+void LoadBackground(const RenderWindow& window, Sprite& backgroundSprite);
+void CreateUnits(Texture& pngTexture, Sprite& spearMan, int unitCount, float scaleFactor, float height);
+void DrawUnits(RenderWindow& window, const Sprite &spearMan, int unitCount);
 Text CreateQuitLabel(const Font& font, float width, float height);
-void HandleEvents(RenderWindow& window, Text& quitLabel, Sprite unitSprites[], int unitCount, Music& music, Sound& sound1, Sound& sound2, Sound& sound3, Sound& sound4);
+void HandleEvents(RenderWindow& window, Text& quitLabel, Sprite& spearMan, int unitCount, Music& music, Sound& sound1, Sound& sound2, Sound& sound3, Sound& sound4);
 void InitializeSounds(SoundBuffer& soundBuffer1, SoundBuffer& soundBuffer2,SoundBuffer& soundBuffer3, SoundBuffer& soundBuffer4, Sound& sound1, Sound& sound2, Sound& sound3, Sound& sound4);
 bool CheckInputSequence(char input, std::string& sequence);
 float currentFrame = 0;
@@ -110,25 +110,18 @@ void CreateLabels(float height, const Font& font, std::vector<Text>& buttonLabel
     }
 }
 
-void CreateUnits(Texture& pngTexture, Sprite unitSprites[], int unitCount, float scaleFactor, float height) {
-    for (int i = 0; i < unitCount; ++i) {
-        unitSprites[i].setTexture(pngTexture);
-        unitSprites[i].setScale(scaleFactor, scaleFactor);
-        unitSprites[i].setPosition(30 + i * (pngTexture.getSize().x * scaleFactor + 10), (height - pngTexture.getSize().y * scaleFactor) / 2 + 307); // Размещение в ряд с отступом
-    }
+void CreateUnits(Texture& pngTexture, Sprite& spearMan, int unitCount, float scaleFactor, float height) {
+    spearMan.setTexture(pngTexture);
+    spearMan.setScale(scaleFactor, scaleFactor);
+    spearMan.setPosition(30 + 1 * (pngTexture.getSize().x * scaleFactor + 10), (height - pngTexture.getSize().y * scaleFactor) / 2 + 307); // Размещение в ряд с отступом
 }
 
-void DrawUnits(RenderWindow& window, Sprite unitSprites[], int unitCount) {
-    for (int i = 0; i < unitCount; ++i) {
-        window.draw(unitSprites[i]);
-    }
+void DrawUnits(RenderWindow& window, Sprite& spearMan, int unitCount) {
+    window.draw(spearMan);
 }
 
-void MoveUnits(Sprite unitSprites[], int unitCount, float distance) {
-
-    for (int i = 0; i < unitCount; ++i) {
-        unitSprites[i].move(distance, 0);
-    }
+void MoveUnits(Sprite& spearMan, int unitCount, float distance) {
+    spearMan.move(distance, 0);
 }
 
 Text CreateQuitLabel(const Font& font, float width, float height) {
@@ -141,10 +134,9 @@ Text CreateQuitLabel(const Font& font, float width, float height) {
     return quitLabel;
 }
 
-void MoveUnitsBackward(Sprite unitSprites[], int unitCount, float distance) {
-    for (int i = 0; i < unitCount; ++i) {
-        unitSprites[i].move(-distance, 0);
-    }
+void MoveUnitsBackward(Sprite& spearMan, int unitCount, float distance) {
+    spearMan.move(-distance, 0);
+
 }
 
 void InitializeSounds(SoundBuffer& soundBuffer1, SoundBuffer& soundBuffer2,SoundBuffer& soundBuffer3, SoundBuffer& soundBuffer4, Sound& sound1, Sound& sound2,  Sound& sound3,  Sound& sound4) {
@@ -170,7 +162,7 @@ void InitializeSounds(SoundBuffer& soundBuffer1, SoundBuffer& soundBuffer2,Sound
     sound4.setBuffer(soundBuffer4);
 }
 
-void LoadBackground(RenderWindow& window, Sprite& backgroundSprite) {
+void LoadBackground(const RenderWindow& window, Sprite& backgroundSprite) {
     static Texture newGameTexture;
     if (!newGameTexture.loadFromFile("images/gfr.jpg")) {
         std::cerr << "Error: Could not load background texture." << std::endl;
@@ -196,9 +188,9 @@ void StartNewGame(RenderWindow& window, Music& music) {
     LoadBackground(window, newGameBackgroundSprite);
     Texture pngTexture = LoadTexture("images/patapon_mark_2.png");
     float scaleFactor = 0.25f;
-    const int unitCount = 4;
-    Sprite unitSprites[unitCount];
-    CreateUnits(pngTexture, unitSprites, unitCount, scaleFactor, window.getSize().y);
+    const int unitCount = 1;
+    Sprite spearMan;
+    CreateUnits(pngTexture, spearMan, unitCount, scaleFactor, window.getSize().y);
     Font font = LoadFont("font/Patapon.ttf");
     Text quitLabel = CreateQuitLabel(font, window.getSize().x, window.getSize().y);
     std::string inputSequence;
@@ -212,17 +204,17 @@ void StartNewGame(RenderWindow& window, Music& music) {
     Sound sound4;
     InitializeSounds(soundBuffer1, soundBuffer2,soundBuffer3, soundBuffer4, sound1, sound2, sound3, sound4);
     while (window.isOpen()) {
-        HandleEvents(window, quitLabel, unitSprites, unitCount, music, sound1, sound2, sound3, sound4); // Обработка событий
+        HandleEvents(window, quitLabel, spearMan, unitCount, music, sound1, sound2, sound3, sound4); // Обработка событий
 
         window.clear();
         window.draw(newGameBackgroundSprite);
-        DrawUnits(window, unitSprites, unitCount);
+        DrawUnits(window, spearMan, unitCount);
         window.draw(quitLabel);
 
         window.display();
     }
 }
-void HandleEvents(RenderWindow& window, Text& quitLabel, Sprite unitSprites[], int unitCount, Music& music, Sound& sound1, Sound& sound2, Sound& sound3, Sound& sound4) {
+void HandleEvents(RenderWindow& window, Text& quitLabel, Sprite& spearMan, int unitCount, Music& music, Sound& sound1, Sound& sound2, Sound& sound3, Sound& sound4) {
     Event event;
     static std::string inputSequence;
     static float lastBeatTime = 0.0f; // Время последнего удара
@@ -287,7 +279,7 @@ void HandleEvents(RenderWindow& window, Text& quitLabel, Sprite unitSprites[], i
                 }
             }
             if (inputSequence == "1112") {
-                MoveUnits(unitSprites, unitCount, 50.0f);
+                MoveUnits(spearMan, unitCount, 50.0f);
                 inputSequence.clear();
                 std::this_thread::sleep_for(std::chrono::milliseconds(500));
                 if (!musicPlayed) {
@@ -301,7 +293,7 @@ void HandleEvents(RenderWindow& window, Text& quitLabel, Sprite unitSprites[], i
                     musicPlayed = true;
                 }
             } else if (inputSequence == "2211") {
-                MoveUnitsBackward(unitSprites, unitCount, 50.0f);
+                MoveUnitsBackward(spearMan, unitCount, 50.0f);
                 inputSequence.clear();
                 std::this_thread::sleep_for(std::chrono::milliseconds(500));
                 if (!musicPlayed) {
@@ -330,7 +322,7 @@ void HandleEvents(RenderWindow& window, Text& quitLabel, Sprite unitSprites[], i
 
 
 
-void isGoing(RenderWindow& window, Sprite& backgroundSprite, Text& text, std::vector<Text>& buttonLabels, Music& music)
+void isGoing(RenderWindow& window, const Sprite& backgroundSprite, const Text& text, std::vector<Text>& buttonLabels, Music& music)
 {
     while (window.isOpen())
     {
