@@ -21,7 +21,7 @@ void LoadBackground(const RenderWindow& window, Sprite& backgroundSprite);
 void CreateUnits(Texture& pngTexture, Sprite& spearMan, int unitCount, float scaleFactor, float height);
 void DrawUnits(RenderWindow& window, const Sprite &spearMan, int unitCount);
 Text CreateQuitLabel(const Font& font, float width, float height);
-void HandleEvents(RenderWindow& window, Text& quitLabel, Sprite& spearMan, int unitCount, Music& music, Sound& sound1, Sound& sound2, Sound& sound3, Sound& sound4);
+void HandleEvents(Sprite& backgroundSprite, RenderWindow& window, Text& quitLabel, Sprite& spearMan, int unitCount, Music& music, Sound& sound1, Sound& sound2, Sound& sound3, Sound& sound4);
 void InitializeSounds(SoundBuffer& soundBuffer1, SoundBuffer& soundBuffer2,SoundBuffer& soundBuffer3, SoundBuffer& soundBuffer4, Sound& sound1, Sound& sound2, Sound& sound3, Sound& sound4);
 bool CheckInputSequence(char input, std::string& sequence);
 float currentFrame = 0;
@@ -164,15 +164,44 @@ void InitializeSounds(SoundBuffer& soundBuffer1, SoundBuffer& soundBuffer2,Sound
 
 void LoadBackground(const RenderWindow& window, Sprite& backgroundSprite) {
     static Texture newGameTexture;
-    if (!newGameTexture.loadFromFile("images/gfr.jpg")) {
+    if (!newGameTexture.loadFromFile("images/FONIMAGE.png")) {
         std::cerr << "Error: Could not load background texture." << std::endl;
         exit(-1);
     }
-    float width = window.getSize().x;
-    float height = window.getSize().y;
     backgroundSprite.setTexture(newGameTexture);
-    backgroundSprite.setScale(width / newGameTexture.getSize().x, height / newGameTexture.getSize().y);
+    backgroundSprite.setPosition(0, -80);
 }
+
+
+// Function to update the background position based on player movement
+void UpdateBackgroundPosition(Sprite& spearMan, int unitCount, Sprite& backgroundSprite, float playerMovement, const RenderWindow& window) {
+    // Get the texture size and the window size
+    const Texture* texture = backgroundSprite.getTexture();
+    if (!texture) {
+        std::cerr << "Error: Background sprite has no texture." << std::endl;
+        return;
+    }
+
+    float textureWidth = texture->getSize().x;
+    float windowWidth = window.getSize().x;
+
+    // Get the current position of the background sprite
+    float currentX = backgroundSprite.getPosition().x;
+
+    // Check if the background can still move
+    if (playerMovement > 0 && currentX <= -(textureWidth - windowWidth)) {
+        MoveUnits(spearMan, unitCount, 50.0f);
+        return;
+    } else if (playerMovement < 0 && currentX >= 0) {
+        MoveUnits(spearMan, unitCount, 50.0f);
+        return;
+    }
+
+    // Move the background sprite to create a scrolling effect
+    backgroundSprite.move(-playerMovement, 0);
+}
+
+
 
 void StartNewGame(RenderWindow& window, Music& music) {
     music.stop();
@@ -204,7 +233,7 @@ void StartNewGame(RenderWindow& window, Music& music) {
     Sound sound4;
     InitializeSounds(soundBuffer1, soundBuffer2,soundBuffer3, soundBuffer4, sound1, sound2, sound3, sound4);
     while (window.isOpen()) {
-        HandleEvents(window, quitLabel, spearMan, unitCount, music, sound1, sound2, sound3, sound4); // Обработка событий
+        HandleEvents(newGameBackgroundSprite,window, quitLabel, spearMan, unitCount, music, sound1, sound2, sound3, sound4); // Обработка событий
 
         window.clear();
         window.draw(newGameBackgroundSprite);
@@ -214,7 +243,7 @@ void StartNewGame(RenderWindow& window, Music& music) {
         window.display();
     }
 }
-void HandleEvents(RenderWindow& window, Text& quitLabel, Sprite& spearMan, int unitCount, Music& music, Sound& sound1, Sound& sound2, Sound& sound3, Sound& sound4) {
+void HandleEvents(Sprite& backgroundSprite, RenderWindow& window, Text& quitLabel, Sprite& spearMan, int unitCount, Music& music, Sound& sound1, Sound& sound2, Sound& sound3, Sound& sound4) {
     Event event;
     static std::string inputSequence;
     static float lastBeatTime = 0.0f; // Время последнего удара
@@ -279,7 +308,7 @@ void HandleEvents(RenderWindow& window, Text& quitLabel, Sprite& spearMan, int u
                 }
             }
             if (inputSequence == "1112") {
-                MoveUnits(spearMan, unitCount, 50.0f);
+                UpdateBackgroundPosition(spearMan,1,backgroundSprite, 100.0f, window);
                 inputSequence.clear();
                 std::this_thread::sleep_for(std::chrono::milliseconds(500));
                 if (!musicPlayed) {
@@ -293,9 +322,9 @@ void HandleEvents(RenderWindow& window, Text& quitLabel, Sprite& spearMan, int u
                     musicPlayed = true;
                 }
             } else if (inputSequence == "2211") {
-                MoveUnitsBackward(spearMan, unitCount, 50.0f);
+                UpdateBackgroundPosition(spearMan,1,backgroundSprite, -100.0f, window);
                 inputSequence.clear();
-                std::this_thread::sleep_for(std::chrono::milliseconds(500));
+                std::this_thread::sleep_for(std::chrono::milliseconds(1500));
                 if (!musicPlayed) {
                     if (!music.openFromFile("music/00Retreat-03.wav")) {
                         std::cerr << "Error: Could not open sound file." << std::endl;
@@ -335,7 +364,7 @@ void isGoing(RenderWindow& window, const Sprite& backgroundSprite, const Text& t
             if (event.type == Event::MouseButtonPressed && event.mouseButton.button == Mouse::Left) {
                 FloatRect newGameLabelBounds = buttonLabels[0].getGlobalBounds();
                 if (newGameLabelBounds.contains(static_cast<float>(event.mouseButton.x), static_cast<float>(event.mouseButton.y))) {
-                    StartNewGame(window, music); // Переход на новую игру
+                    StartNewGame(window, music);
                 }
 
                 FloatRect quitLabelBounds = buttonLabels.back().getGlobalBounds();

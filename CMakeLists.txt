@@ -9,5 +9,4 @@ set(CMAKE_CXX_STANDARD 17)
 
 add_executable(untitled12 main.cpp
         main.cpp)
-
 target_link_libraries(untitled12 sfml-graphics sfml-audio)
