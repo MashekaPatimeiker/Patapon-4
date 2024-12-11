@@ -7,6 +7,32 @@
 #include <cmath>
 using namespace sf;
 using namespace std;
+class Spear {
+public:
+    Sprite sprite; // The sprite representing the spear
+    Vector2f position; // Current position of the spear
+    float speed; // Speed of the spear
+
+    Spear(Texture& texture, Vector2f startPosition, float spearSpeed) {
+        sprite.setTexture(texture);
+        position = startPosition;
+        sprite.setPosition(position);
+        speed = spearSpeed;
+    }
+
+    void update() {
+        position.x += speed; // Move the spear in the x direction
+        sprite.setPosition(position);
+    }
+
+    void draw(RenderWindow& window) {
+        window.draw(sprite);
+    }
+};
+
+Spear* spear = nullptr;
+
+bool spearInFlight = false;
 
 RenderWindow InitWindow();
 Texture LoadTexture(const std::string& filePath);
@@ -115,7 +141,6 @@ void CreateUnits(Texture& pngTexture, Sprite& spearMan, int unitCount, float sca
     spearMan.setScale(scaleFactor, scaleFactor);
     spearMan.setPosition(30 + 1 * (pngTexture.getSize().x * scaleFactor + 10), (height - pngTexture.getSize().y * scaleFactor) / 2 + 307); // Размещение в ряд с отступом
 }
-
 void DrawUnits(RenderWindow& window, Sprite& spearMan, int unitCount) {
     window.draw(spearMan);
 }
@@ -190,10 +215,10 @@ void UpdateBackgroundPosition(Sprite& spearMan, Sprite& kaChik, int unitCount, S
 
     // Check if the background can still move
     if (playerMovement > 0 && currentX <= -(textureWidth - windowWidth)) {
-        MoveUnits(spearMan, unitCount, 50.0f);
+        MoveUnits(spearMan, unitCount, 500.0f);
         return;
     } else if (playerMovement < 0 && currentX >= 0) {
-        MoveUnits(spearMan, unitCount, 50.0f);
+        MoveUnits(spearMan, unitCount, 500.0f);
         return;
     }
     // Move the background sprite to create a scrolling effect
@@ -223,52 +248,56 @@ void StartNewGame(RenderWindow& window, Music& music) {
     const int unitCount = 1;
     Sprite spearMan;
     Sprite kaChik;
+    float backgroundWidth = newGameBackgroundSprite.getGlobalBounds().width - 1600.0f;
     CreateUnits(pngTexture, spearMan, unitCount, scaleFactor, window.getSize().y);
-    CreateKaChik(pngText, kaChik, unitCount, scaleFactor, window.getSize().y - 75);
+    CreateKaChik(pngText, kaChik, 2, scaleFactor, window.getSize().y - 75);
     Font font = LoadFont("font/Patapon.ttf");
     Text quitLabel = CreateQuitLabel(font, window.getSize().x, window.getSize().y);
 
-    // Переменные для эффекта пульса
+    // Variables for pulse effect
     float pulseSize = 0.0f;
-    float pulseMaxSize = 200.0f; // Максимальный размер пульса
-    float pulseSpeed = 400.0f; // Скорость роста пульса
+    float pulseMaxSize = 200.0f; // Maximum pulse size
+    float pulseSpeed = 400.0f; // Pulse growth speed
 
-    Clock clock; // Создаем объект Clock для отслеживания времени
+    Clock clock; // Create a Clock object to track time
 
-    SoundBuffer soundBuffer1;
-    SoundBuffer soundBuffer2;
-    SoundBuffer soundBuffer3;
-    SoundBuffer soundBuffer4;
-    Sound sound1;
-    Sound sound2;
-    Sound sound3;
-    Sound sound4;
+    SoundBuffer soundBuffer1, soundBuffer2, soundBuffer3, soundBuffer4;
+    Sound sound1, sound2, sound3, sound4;
     InitializeSounds(soundBuffer1, soundBuffer2, soundBuffer3, soundBuffer4, sound1, sound2, sound3, sound4);
 
     while (window.isOpen()) {
-        HandleEvents(newGameBackgroundSprite,kaChik, window, quitLabel, spearMan, unitCount, music, sound1, sound2, sound3, sound4); // Обработка событий
+        HandleEvents(newGameBackgroundSprite, kaChik, window, quitLabel, spearMan, unitCount, music, sound1, sound2, sound3, sound4); // Handle events
 
-        // Обновление эффекта пульса
-        float deltaTime = clock.restart().asSeconds(); // Получаем время с последнего кадра
-        pulseSize += pulseSpeed * deltaTime;// Используем deltaTime для плавности
+        // Update pulse effect
+        float deltaTime = clock.restart().asSeconds(); // Get time since last frame
+        pulseSize += pulseSpeed * deltaTime; // Use deltaTime for smoothness
 
-        // Рисуем эффект пульса в виде белой полоски
+        // Draw pulse effect as a white bar
         RectangleShape pulse(Vector2f(pulseSize, 10));
         if (pulseSize >= pulseMaxSize) {
-            pulseSize = 0.0f; // Сбросить размер пульса
-        } // Полоска шириной 10
-        pulse.setFillColor(Color::White); // Белый цвет
-        pulse.setOrigin(pulseSize / 2, 5); // Центрируем по вертикали
-        pulse.setPosition(window.getSize().x / 2, 20); // Позиция полоски в верхней части окна
+            pulseSize = 0.0f; // Reset pulse size
+        }
+        pulse.setFillColor(Color::White); // White color
+        pulse.setOrigin(pulseSize / 2, 5); // Center vertically
+        pulse.setPosition(window.getSize().x / 2, 20); // Position at the top of the window
 
+        // Clear the window
         window.clear();
         window.draw(newGameBackgroundSprite);
         DrawUnits(window, spearMan, unitCount);
         window.draw(kaChik);
         window.draw(quitLabel);
-        window.draw(pulse); // Рисуем эффект пульса
+        window.draw(pulse); // Draw pulse effect
 
-        window.display();
+        // Check if spearMan has reached the end of the background
+        if (spearMan.getPosition().x >= backgroundWidth) {
+            std::cout << "Game Over: SpearMan reached the end of the background!" << std::endl;
+            music1.stop(); // Stop the music
+            window.close(); // Close the window
+            return; // Exit the function
+        }
+
+        window.display(); // Display the contents of the window
     }
 }
 void HandleEvents(Sprite& backgroundSprite,Sprite& kaChik, RenderWindow& window, Text& quitLabel, Sprite& spearMan, int unitCount, Music& music, Sound& sound1, Sound& sound2, Sound& sound3, Sound& sound4) {
@@ -304,8 +333,9 @@ void HandleEvents(Sprite& backgroundSprite,Sprite& kaChik, RenderWindow& window,
                 inputSequence += '4';
                 sound4.play();
             }
+
             if (inputSequence == "1112") {
-                UpdateBackgroundPosition(spearMan,kaChik,1,backgroundSprite, 100.0f, window);
+                UpdateBackgroundPosition(spearMan, kaChik, 1, backgroundSprite, 400.0f, window);
                 inputSequence.clear();
                 std::this_thread::sleep_for(std::chrono::milliseconds(500));
                 if (!musicPlayed) {
@@ -315,12 +345,12 @@ void HandleEvents(Sprite& backgroundSprite,Sprite& kaChik, RenderWindow& window,
                     }
                     music.setLoop(false);
                     music.play();
-                    lastBeatTime = clock.getElapsedTime().asSeconds(); // Обновляем время последнего удара
+                    lastBeatTime = clock.getElapsedTime().asSeconds(); // Update last beat time
                     musicPlayed = true;
                     MoveUnits(kaChik, unitCount, -100.0f);
                 }
             } else if (inputSequence == "2211") {
-                UpdateBackgroundPosition(spearMan,kaChik,1,backgroundSprite, -100.0f, window);
+                UpdateBackgroundPosition(spearMan, kaChik, 1, backgroundSprite, -100.0f, window);
                 inputSequence.clear();
                 std::this_thread::sleep_for(std::chrono::milliseconds(500));
                 if (!musicPlayed) {
@@ -334,17 +364,61 @@ void HandleEvents(Sprite& backgroundSprite,Sprite& kaChik, RenderWindow& window,
                     musicPlayed = true;
                     MoveUnits(kaChik, unitCount, 100.0f);
                 }
-            } else if (inputSequence.length() > 4) {
+            }else if (inputSequence == "2212") {
+                Texture spearTexture;
+                if (!spearTexture.loadFromFile("images/rapgod.png")) {
+                    std::cerr << "Error: Could not load spear texture." << std::endl;
+                    exit(-1);
+                }
+
+                Sprite speargod;
+                speargod.setTexture(spearTexture);
+                speargod.setScale(0.25f, 0.25f);
+                speargod.setPosition(spearMan.getPosition().x, spearMan.getPosition().y-100.0f); // Positioning the spear
+
+                // Flight parameters
+                float flightDistance = 500.0f; // Distance to fly
+                float flightSpeed = 300.0f; // Increased speed of the flight
+                float currentDistance = 0.0f; // Distance traveled
+
+                // Main loop for the flight
+                while (currentDistance < flightDistance) {
+                    // Handle events (this is crucial for window responsiveness)
+                    sf::Event event{};
+                    while (window.pollEvent(event)) {
+                        if (event.type == sf::Event::Closed)
+                            window.close();
+                    }
+
+                    // Update the position of the spear
+                    speargod.move(flightSpeed * 0.016f, 0); // Move right along the x-axis
+                    currentDistance += flightSpeed * 0.016f;
+
+                    window.draw(backgroundSprite);
+                    DrawUnits(window, spearMan, unitCount);
+                    window.draw(kaChik);
+                    window.draw(quitLabel);
+
+
+                    window.draw(speargod);
+
+                    window.display();
+                    window.clear();
+                    // Simulate a short delay for the sake of this example
+                    std::this_thread::sleep_for(std::chrono::milliseconds(8)); // Simulate frame delay
+                }
+            }
+            if (inputSequence.length() > 4) {
                 inputSequence.clear();
             }
         }
-    }
-    Vector2i mousePos = Mouse::getPosition(window);
-    FloatRect quitLabelBounds = quitLabel.getGlobalBounds();
-    if (quitLabelBounds.contains(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y))) {
-        quitLabel.setFillColor(Color::Red);
-    } else {
-        quitLabel.setFillColor(Color::White);
+        Vector2i mousePos = Mouse::getPosition(window);
+        FloatRect quitLabelBounds = quitLabel.getGlobalBounds();
+        if (quitLabelBounds.contains(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y))) {
+            quitLabel.setFillColor(Color::Red);
+        } else {
+            quitLabel.setFillColor(Color::White);
+        }
     }
 }
 
@@ -352,6 +426,18 @@ void HandleEvents(Sprite& backgroundSprite,Sprite& kaChik, RenderWindow& window,
 
 void isGoing(RenderWindow& window, const Sprite& backgroundSprite, const Text& text, std::vector<Text>& buttonLabels, Music& music)
 {
+    Texture spearTexture;
+    if (!spearTexture.loadFromFile("images/rapgod.png")) {
+        std::cerr << "Error: Could not load spear texture." << std::endl;
+    }
+
+    Sprite speargod;
+    speargod.setTexture(spearTexture);
+    speargod.setScale(0.25f, 0.25f);
+    speargod.setPosition(100, 300); // Установите начальную позицию копья
+
+    // Used for timing
+    auto lastTime = std::chrono::steady_clock::now();
     while (window.isOpen())
     {
         Event event{};
