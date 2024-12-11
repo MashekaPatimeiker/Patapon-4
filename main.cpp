@@ -21,7 +21,7 @@ void LoadBackground(const RenderWindow& window, Sprite& backgroundSprite);
 void CreateUnits(Texture& pngTexture, Sprite& spearMan, int unitCount, float scaleFactor, float height);
 void DrawUnits(RenderWindow& window, const Sprite &spearMan, int unitCount);
 Text CreateQuitLabel(const Font& font, float width, float height);
-void HandleEvents(Sprite& backgroundSprite, RenderWindow& window, Text& quitLabel, Sprite& spearMan, int unitCount, Music& music, Sound& sound1, Sound& sound2, Sound& sound3, Sound& sound4);
+void HandleEvents(Sprite& backgroundSprite,Sprite& kaChik, RenderWindow& window, Text& quitLabel, Sprite& spearMan, int unitCount, Music& music, Sound& sound1, Sound& sound2, Sound& sound3, Sound& sound4);
 void InitializeSounds(SoundBuffer& soundBuffer1, SoundBuffer& soundBuffer2,SoundBuffer& soundBuffer3, SoundBuffer& soundBuffer4, Sound& sound1, Sound& sound2, Sound& sound3, Sound& sound4);
 bool CheckInputSequence(char input, std::string& sequence);
 float currentFrame = 0;
@@ -174,7 +174,7 @@ void LoadBackground(const RenderWindow& window, Sprite& backgroundSprite) {
 
 
 // Function to update the background position based on player movement
-void UpdateBackgroundPosition(Sprite& spearMan, int unitCount, Sprite& backgroundSprite, float playerMovement, const RenderWindow& window) {
+void UpdateBackgroundPosition(Sprite& spearMan, Sprite& kaChik, int unitCount, Sprite& backgroundSprite, float playerMovement, const RenderWindow& window) {
     // Get the texture size and the window size
     const Texture* texture = backgroundSprite.getTexture();
     if (!texture) {
@@ -196,33 +196,45 @@ void UpdateBackgroundPosition(Sprite& spearMan, int unitCount, Sprite& backgroun
         MoveUnits(spearMan, unitCount, 50.0f);
         return;
     }
-
     // Move the background sprite to create a scrolling effect
     backgroundSprite.move(-playerMovement, 0);
 }
 
-
-
+void CreateKaChik(Texture& pngTexture, Sprite& spearMan, int unitCount, float scaleFactor, float height) {
+    spearMan.setTexture(pngTexture);
+    spearMan.setScale(scaleFactor, scaleFactor);
+    spearMan.setPosition(400 + 1 * (pngTexture.getSize().x * scaleFactor + 10), (height - pngTexture.getSize().y * scaleFactor) / 2 + 307); // Размещение в ряд с отступом
+}
 void StartNewGame(RenderWindow& window, Music& music) {
     music.stop();
     Music music1;
-    if (!music1.openFromFile("music/01Gyorocchi.ogg"))
-    {
-        std::cerr << "Error: Could not open sound file from " << "music/fonmain.ogg" << std::endl;
+    if (!music1.openFromFile("music/01Gyorocchi.ogg")) {
+        std::cerr << "Error: Could not open sound file from music/01Gyorocchi.ogg" << std::endl;
         exit(-1);
     }
     music1.setLoop(true);
     music1.play();
+
     Sprite newGameBackgroundSprite;
     LoadBackground(window, newGameBackgroundSprite);
     Texture pngTexture = LoadTexture("images/patapon_mark_2.png");
+    Texture pngText = LoadTexture("images/kachik.png");
     float scaleFactor = 0.25f;
     const int unitCount = 1;
     Sprite spearMan;
+    Sprite kaChik;
     CreateUnits(pngTexture, spearMan, unitCount, scaleFactor, window.getSize().y);
+    CreateKaChik(pngText, kaChik, unitCount, scaleFactor, window.getSize().y - 75);
     Font font = LoadFont("font/Patapon.ttf");
     Text quitLabel = CreateQuitLabel(font, window.getSize().x, window.getSize().y);
-    std::string inputSequence;
+
+    // Переменные для эффекта пульса
+    float pulseSize = 0.0f;
+    float pulseMaxSize = 200.0f; // Максимальный размер пульса
+    float pulseSpeed = 400.0f; // Скорость роста пульса
+
+    Clock clock; // Создаем объект Clock для отслеживания времени
+
     SoundBuffer soundBuffer1;
     SoundBuffer soundBuffer2;
     SoundBuffer soundBuffer3;
@@ -231,24 +243,40 @@ void StartNewGame(RenderWindow& window, Music& music) {
     Sound sound2;
     Sound sound3;
     Sound sound4;
-    InitializeSounds(soundBuffer1, soundBuffer2,soundBuffer3, soundBuffer4, sound1, sound2, sound3, sound4);
+    InitializeSounds(soundBuffer1, soundBuffer2, soundBuffer3, soundBuffer4, sound1, sound2, sound3, sound4);
+
     while (window.isOpen()) {
-        HandleEvents(newGameBackgroundSprite,window, quitLabel, spearMan, unitCount, music, sound1, sound2, sound3, sound4); // Обработка событий
+        HandleEvents(newGameBackgroundSprite,kaChik, window, quitLabel, spearMan, unitCount, music, sound1, sound2, sound3, sound4); // Обработка событий
+
+        // Обновление эффекта пульса
+        float deltaTime = clock.restart().asSeconds(); // Получаем время с последнего кадра
+        pulseSize += pulseSpeed * deltaTime;// Используем deltaTime для плавности
+
+        // Рисуем эффект пульса в виде белой полоски
+        RectangleShape pulse(Vector2f(pulseSize, 10));
+        if (pulseSize >= pulseMaxSize) {
+            pulseSize = 0.0f; // Сбросить размер пульса
+        } // Полоска шириной 10
+        pulse.setFillColor(Color::White); // Белый цвет
+        pulse.setOrigin(pulseSize / 2, 5); // Центрируем по вертикали
+        pulse.setPosition(window.getSize().x / 2, 20); // Позиция полоски в верхней части окна
 
         window.clear();
         window.draw(newGameBackgroundSprite);
         DrawUnits(window, spearMan, unitCount);
+        window.draw(kaChik);
         window.draw(quitLabel);
+        window.draw(pulse); // Рисуем эффект пульса
 
         window.display();
     }
 }
-void HandleEvents(Sprite& backgroundSprite, RenderWindow& window, Text& quitLabel, Sprite& spearMan, int unitCount, Music& music, Sound& sound1, Sound& sound2, Sound& sound3, Sound& sound4) {
-    Event event;
+void HandleEvents(Sprite& backgroundSprite,Sprite& kaChik, RenderWindow& window, Text& quitLabel, Sprite& spearMan, int unitCount, Music& music, Sound& sound1, Sound& sound2, Sound& sound3, Sound& sound4) {
+    Event event{};
     static std::string inputSequence;
-    static float lastBeatTime = 0.0f; // Время последнего удара
-    static const float beatInterval = 60.0f / 120.0f; // Интервал между ударами (120 BPM)
-    static const float timingWindow = 0.2f; // Допустимое время для попадания в бит (100 миллисекунд)
+    static float lastBeatTime = 0.0f;
+    static const float beatInterval = 60.0f / 120.0f;
+    static const float timingWindow = 0.2f;
     bool musicPlayed = false;
     Clock clock;
     while (window.pollEvent(event)) {
@@ -263,52 +291,21 @@ void HandleEvents(Sprite& backgroundSprite, RenderWindow& window, Text& quitLabe
             }
         }
         if (event.type == Event::KeyPressed) {
-            float currentTime = clock.getElapsedTime().asSeconds(); // Получаем текущее время
-
             if (event.key.code == Keyboard::Num1) {
                 inputSequence += '1';
                 sound1.play();
-                // Проверяем попадание в бит
-                if (std::fabs(currentTime - lastBeatTime) <= timingWindow) {
-                  //  hitSound.play(); // Звук попадания
-                    std::cout << "Yes (1)!" << std::endl;
-                } else {
-                  //  missSound.play(); // Звук промаха
-                    std::cout << "No (1)!" << std::endl;
-                }
             } else if (event.key.code == Keyboard::Num2) {
                 inputSequence += '2';
                 sound2.play();
-                if (std::fabs(currentTime - lastBeatTime) <= timingWindow) {
-                //    hitSound.play(); // Звук попадания
-                    std::cout << "Yes (2)!" << std::endl;
-                } else {
-                  //  missSound.play(); // Звук промаха
-                    std::cout << "No (2)!" << std::endl;
-                }
             } else if (event.key.code == Keyboard::Num3) {
                 inputSequence += '3';
                 sound3.play();
-                if (std::fabs(currentTime - lastBeatTime) <= timingWindow) {
-                   // hitSound.play(); // Звук попадания
-                    std::cout << "Yes (3)!" << std::endl;
-                } else {
-                    //missSound.play(); // Звук промаха
-                    std::cout << "No (3)!" << std::endl;
-                }
             } else if (event.key.code == Keyboard::Num4) {
                 inputSequence += '4';
                 sound4.play();
-                if (std::fabs(currentTime - lastBeatTime) <= timingWindow) {
-              //      hitSound.play(); // Звук попадания
-                    std::cout << "Yes (4)!" << std::endl;
-                } else {
-                //    missSound.play(); // Звук промаха
-                    std::cout << "No (4)!" << std::endl;
-                }
             }
             if (inputSequence == "1112") {
-                UpdateBackgroundPosition(spearMan,1,backgroundSprite, 100.0f, window);
+                UpdateBackgroundPosition(spearMan,kaChik,1,backgroundSprite, 100.0f, window);
                 inputSequence.clear();
                 std::this_thread::sleep_for(std::chrono::milliseconds(500));
                 if (!musicPlayed) {
@@ -320,11 +317,12 @@ void HandleEvents(Sprite& backgroundSprite, RenderWindow& window, Text& quitLabe
                     music.play();
                     lastBeatTime = clock.getElapsedTime().asSeconds(); // Обновляем время последнего удара
                     musicPlayed = true;
+                    MoveUnits(kaChik, unitCount, -100.0f);
                 }
             } else if (inputSequence == "2211") {
-                UpdateBackgroundPosition(spearMan,1,backgroundSprite, -100.0f, window);
+                UpdateBackgroundPosition(spearMan,kaChik,1,backgroundSprite, -100.0f, window);
                 inputSequence.clear();
-                std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+                std::this_thread::sleep_for(std::chrono::milliseconds(500));
                 if (!musicPlayed) {
                     if (!music.openFromFile("music/00Retreat-03.wav")) {
                         std::cerr << "Error: Could not open sound file." << std::endl;
@@ -332,8 +330,9 @@ void HandleEvents(Sprite& backgroundSprite, RenderWindow& window, Text& quitLabe
                     }
                     music.setLoop(false);
                     music.play();
-                    lastBeatTime = clock.getElapsedTime().asSeconds(); // Обновляем время последнего удара
+                    lastBeatTime = clock.getElapsedTime().asSeconds();
                     musicPlayed = true;
+                    MoveUnits(kaChik, unitCount, 100.0f);
                 }
             } else if (inputSequence.length() > 4) {
                 inputSequence.clear();
@@ -355,7 +354,7 @@ void isGoing(RenderWindow& window, const Sprite& backgroundSprite, const Text& t
 {
     while (window.isOpen())
     {
-        Event event;
+        Event event{};
         while (window.pollEvent(event))
         {
             if (event.type == Event::Closed)
