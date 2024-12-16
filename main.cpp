@@ -15,21 +15,23 @@ RenderWindow InitWindow();
 Texture LoadTexture(const std::string& filePath);
 Font LoadFont(const std::string& filePath);
 void StartSettings();
+void OpenFileNameNiga(std::string& playerName);
 Text InitText(const Font& font, const std::string& str, int size, Color color, float x, float y);
 void isGoing(RenderWindow& window, const Sprite& backgroundSprite, const Text& text, std::vector<Text>& buttonLabels, Music& music);
 void CreateLabels(float height, const Font& font, std::vector<Text>& buttonLabels);
 void StartNewGame(RenderWindow& window, Music& music);
 void MoveUnits(Sprite& spearMan, float distance);
-void MoveUnitsBackward(Sprite& spearMan, int unitCount, float distance);
+//void MoveUnitsBackward(Sprite& spearMan, int unitCount, float distance);
 void LoadBackground(Sprite& backgroundSprite);
 void CreateUnits(Texture& pngTexture, Sprite& spearMan, float scaleFactor, float height);
-void DrawUnits(RenderWindow& window, const Sprite &spearMan, int unitCount);
+//void DrawUnits(RenderWindow& window, const Sprite &spearMan, int unitCount);
 Text CreateQuitLabel(const Font& font, float width, float height);
-void HandleEvents(Sprite& backgroundSprite,Sprite& kaChik, RenderWindow& window, Text& quitLabel, Sprite& spearMan, int unitCount, Music& music, Sound& sound1, Sound& sound2, Sound& sound3, Sound& sound4);
+void HandleEvents(Sprite& backgroundSprite,Sprite& kaChik, RenderWindow& window, Text& quitLabel, Sprite& spearMan, Music& music, Sound& sound1, Sound& sound2, Sound& sound3, Sound& sound4);
 void InitializeSounds(SoundBuffer& soundBuffer1, SoundBuffer& soundBuffer2,SoundBuffer& soundBuffer3, SoundBuffer& soundBuffer4, Sound& sound1, Sound& sound2, Sound& sound3, Sound& sound4);
-bool CheckInputSequence(char input, std::string& sequence);
+//bool CheckInputSequence(char input, std::string& sequence);
 void SavePlayerName(const std::string& playerName);
-float currentFrame = 0;
+//float currentFrame = 0;
+void OpenFileNameNiga(const std::string& playerName);
 int main()
 {
     RenderWindow window = InitWindow();
@@ -120,7 +122,7 @@ void CreateUnits(Texture& pngTexture, Sprite& spearMan, float scaleFactor, float
     spearMan.setScale(scaleFactor, scaleFactor);
     spearMan.setPosition(30 + 1 * (static_cast<float>(pngTexture.getSize().x) * scaleFactor + 10), (height - static_cast<float>(pngTexture.getSize().y) * scaleFactor) / 2 + 307); // Размещение в ряд с отступом
 }
-void DrawUnits(RenderWindow& window, Sprite& spearMan, int unitCount) {
+void DrawUnits(RenderWindow& window, Sprite& spearMan) {
     window.draw(spearMan);
 }
 
@@ -212,7 +214,6 @@ void StartNewGame(RenderWindow& window, Music& music) {
     Texture pngTexture = LoadTexture("images/patapon_mark_2.png");
     Texture pngText = LoadTexture("images/kachik.png");
     float scaleFactor = 0.25f;
-    const int unitCount = 1;
     Sprite spearMan;
     Sprite kaChik;
     float backgroundWidth = newGameBackgroundSprite.getGlobalBounds().width - 1600.0f;
@@ -228,7 +229,7 @@ void StartNewGame(RenderWindow& window, Music& music) {
     Sound sound1, sound2, sound3, sound4;
     InitializeSounds(soundBuffer1, soundBuffer2, soundBuffer3, soundBuffer4, sound1, sound2, sound3, sound4);
     while (window.isOpen()) {
-        HandleEvents(newGameBackgroundSprite, kaChik, window, quitLabel, spearMan, unitCount, music, sound1, sound2, sound3, sound4); // Handle events
+        HandleEvents(newGameBackgroundSprite, kaChik, window, quitLabel, spearMan, music, sound1, sound2, sound3, sound4); // Handle events
 
         float deltaTime = clock.restart().asSeconds();
         pulseSize += pulseSpeed * deltaTime;
@@ -241,7 +242,7 @@ void StartNewGame(RenderWindow& window, Music& music) {
         pulse.setPosition(static_cast<float>(window.getSize().x) / 2, 20);
         window.clear();
         window.draw(newGameBackgroundSprite);
-        DrawUnits(window, spearMan, unitCount);
+        DrawUnits(window, spearMan);
         window.draw(quitLabel);
         window.draw(pulse);
         if (counter < 4) {
@@ -261,7 +262,7 @@ void StartNewGame(RenderWindow& window, Music& music) {
     }
 }
 
-void HandleEvents(Sprite& backgroundSprite,Sprite& kaChik, RenderWindow& window, Text& quitLabel, Sprite& spearMan, int unitCount, Music& music, Sound& sound1, Sound& sound2, Sound& sound3, Sound& sound4) {
+void HandleEvents(Sprite& backgroundSprite,Sprite& kaChik, RenderWindow& window, Text& quitLabel, Sprite& spearMan, Music& music, Sound& sound1, Sound& sound2, Sound& sound3, Sound& sound4) {
     Event event{};
     static std::string inputSequence;
     static float lastBeatTime = 0.0f;
@@ -388,7 +389,7 @@ void HandleEvents(Sprite& backgroundSprite,Sprite& kaChik, RenderWindow& window,
                     currentDistance += flightSpeed * 0.016f;
 
                     window.draw(backgroundSprite);
-                    DrawUnits(window, spearMan, unitCount);
+                    DrawUnits(window, spearMan);
 
                     window.draw(quitLabel);
                     window.draw(pulse);
@@ -536,14 +537,31 @@ RectangleShape CreateSaveButton(const Font& font) {
     saveButtonText.setPosition(50,50);
     return saveButton;
 }
+RectangleShape CreateOpenFileButton(const Font& font) {
+    Text saveButtonText("Open", font, 25);
+    saveButtonText.setFillColor(Color::Green);
 
+    float saveButtonWidth = saveButtonText.getGlobalBounds().width +10;
+    float saveButtonHeight = saveButtonText.getGlobalBounds().height + 20;
+    RectangleShape saveButton(Vector2f(saveButtonWidth, saveButtonHeight));
+    saveButton.setFillColor(Color::Blue);
+    saveButton.setPosition(0, 40); // Позиция в верхнем левом углу
+
+    saveButtonText.setPosition(50,50);
+    return saveButton;
+}
 Text CreateButtonText(const std::string& text, const Font& font) {
     Text buttonText(text, font, 25);
     buttonText.setFillColor(Color::Green);
 
     return buttonText;
 }
-
+Text CreateButtonText1(const std::string& text, const Font& font) {
+    Text buttonText(text, font, 25);
+    buttonText.setFillColor(Color::Green);
+    buttonText.setPosition(0, 40);
+    return buttonText;
+}
 Text CreateNameLabel(const Font& font, const RenderWindow& window) {
     Text nameLabel("", font, 50);
     nameLabel.setFillColor(Color::White);
@@ -551,7 +569,7 @@ Text CreateNameLabel(const Font& font, const RenderWindow& window) {
     return nameLabel;
 }
 
-void HandleEvents(RenderWindow& settingsWindow, std::string& playerName, Text& inputText, Text& quitLabel, RectangleShape& button, Text& nameLabel, RectangleShape& saveButton) {
+void HandleEvents(RenderWindow& settingsWindow, std::string& playerName, Text& inputText, Text& quitLabel, RectangleShape& button, Text& nameLabel, RectangleShape& saveButton, RectangleShape& openfileButton) {
     Event event{};
     while (settingsWindow.pollEvent(event)) {
         if (event.type == Event::Closed) {
@@ -581,11 +599,15 @@ void HandleEvents(RenderWindow& settingsWindow, std::string& playerName, Text& i
             if (saveButton.getGlobalBounds().contains(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y))) {
                 SavePlayerName(playerName);
             }
+            if (openfileButton.getGlobalBounds().contains(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y))) {
+                OpenFileNameNiga(playerName);
+                nameLabel.setString("OUR HERO NAME: " + playerName);
+            }
         }
     }
 }
 
-void RenderingWindow(RenderWindow& settingsWindow, const Sprite& newGameBackgroundSprite, Text& quitLabel, const Text& inputText, const RectangleShape& button, const RectangleShape& saveButton, const Text& saveButtonText, const Text& nameLabel, const Text& namePrompt) {
+void RenderingWindow(RenderWindow& settingsWindow,const RectangleShape& openbutton,const Text& openButtonText, const Sprite& newGameBackgroundSprite, Text& quitLabel, const Text& inputText, const RectangleShape& button, const RectangleShape& saveButton, const Text& saveButtonText, const Text& nameLabel, const Text& namePrompt) {
     settingsWindow.clear();
     settingsWindow.draw(newGameBackgroundSprite);
     settingsWindow.draw(quitLabel);
@@ -595,6 +617,8 @@ void RenderingWindow(RenderWindow& settingsWindow, const Sprite& newGameBackgrou
     settingsWindow.draw(saveButtonText);
     settingsWindow.draw(nameLabel);
     settingsWindow.draw(namePrompt);
+    settingsWindow.draw(openbutton);
+    settingsWindow.draw(openButtonText);
     settingsWindow.display();
     Vector2i mousePos = Mouse::getPosition(settingsWindow);
     FloatRect quitLabelBounds = quitLabel.getGlobalBounds();
@@ -618,10 +642,11 @@ void StartSettings() {
     RectangleShape saveButton = CreateSaveButton(font);
     Text saveButtonText = CreateButtonText("Save", font);
     Text nameLabel = CreateNameLabel(font, settingsWindow);
-
+    RectangleShape openbutton = CreateOpenFileButton(font);
+    Text openButtonText = CreateButtonText1("Open", font);
     while (settingsWindow.isOpen()) {
-        HandleEvents(settingsWindow, playerName, inputText, quitLabel, button, nameLabel, saveButton);
-        RenderingWindow(settingsWindow, newGameBackgroundSprite, quitLabel, inputText, button, saveButton, saveButtonText, nameLabel, namePrompt);
+        HandleEvents(settingsWindow, playerName, inputText, quitLabel, button, nameLabel, saveButton, openbutton);
+        RenderingWindow(settingsWindow,openbutton,openButtonText, newGameBackgroundSprite, quitLabel, inputText, button, saveButton, saveButtonText, nameLabel, namePrompt);
     }
 }
 void SavePlayerName(const std::string& playerName) {
@@ -633,5 +658,19 @@ void SavePlayerName(const std::string& playerName) {
     } else {
         // Обработка ошибки открытия файла
         std::cerr << "Ошибка: не удалось открыть файл для записи." << std::endl;
+    }
+}
+void OpenFileNameNiga(std::string& playerName) {
+    // Open a file dialog to select a text file (this part is platform-dependent)
+    // For simplicity, we will assume the file path is provided directly.
+    std::string filePath = "files/users.txt"; // Replace with actual file path if needed
+
+    std::ifstream inputFile(filePath);
+    if (inputFile.is_open()) {
+        std::getline(inputFile, playerName); // Read the first line (the player's name)
+        inputFile.close();
+    } else {
+        std::cerr << "Unable to open file: " << filePath << std::endl;
+        playerName = "";
     }
 }
