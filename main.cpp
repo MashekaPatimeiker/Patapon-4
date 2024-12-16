@@ -6,6 +6,7 @@
 #include <chrono>
 #include <cmath>
 #include <Windows.h>
+#include <fstream>
 
 using namespace sf;
 using namespace std;
@@ -18,15 +19,16 @@ Text InitText(const Font& font, const std::string& str, int size, Color color, f
 void isGoing(RenderWindow& window, const Sprite& backgroundSprite, const Text& text, std::vector<Text>& buttonLabels, Music& music);
 void CreateLabels(float height, const Font& font, std::vector<Text>& buttonLabels);
 void StartNewGame(RenderWindow& window, Music& music);
-void MoveUnits(Sprite& spearMan, int unitCount, float distance);
+void MoveUnits(Sprite& spearMan, float distance);
 void MoveUnitsBackward(Sprite& spearMan, int unitCount, float distance);
 void LoadBackground(Sprite& backgroundSprite);
-void CreateUnits(Texture& pngTexture, Sprite& spearMan, int unitCount, float scaleFactor, float height);
+void CreateUnits(Texture& pngTexture, Sprite& spearMan, float scaleFactor, float height);
 void DrawUnits(RenderWindow& window, const Sprite &spearMan, int unitCount);
 Text CreateQuitLabel(const Font& font, float width, float height);
 void HandleEvents(Sprite& backgroundSprite,Sprite& kaChik, RenderWindow& window, Text& quitLabel, Sprite& spearMan, int unitCount, Music& music, Sound& sound1, Sound& sound2, Sound& sound3, Sound& sound4);
 void InitializeSounds(SoundBuffer& soundBuffer1, SoundBuffer& soundBuffer2,SoundBuffer& soundBuffer3, SoundBuffer& soundBuffer4, Sound& sound1, Sound& sound2, Sound& sound3, Sound& sound4);
 bool CheckInputSequence(char input, std::string& sequence);
+void SavePlayerName(const std::string& playerName);
 float currentFrame = 0;
 int main()
 {
@@ -113,7 +115,7 @@ void CreateLabels(float height, const Font& font, std::vector<Text>& buttonLabel
     }
 }
 
-void CreateUnits(Texture& pngTexture, Sprite& spearMan, int unitCount, float scaleFactor, float height) {
+void CreateUnits(Texture& pngTexture, Sprite& spearMan, float scaleFactor, float height) {
     spearMan.setTexture(pngTexture);
     spearMan.setScale(scaleFactor, scaleFactor);
     spearMan.setPosition(30 + 1 * (static_cast<float>(pngTexture.getSize().x) * scaleFactor + 10), (height - static_cast<float>(pngTexture.getSize().y) * scaleFactor) / 2 + 307); // Размещение в ряд с отступом
@@ -122,7 +124,7 @@ void DrawUnits(RenderWindow& window, Sprite& spearMan, int unitCount) {
     window.draw(spearMan);
 }
 
-void MoveUnits(Sprite& spearMan, int unitCount, float distance) {
+void MoveUnits(Sprite& spearMan, float distance) {
     spearMan.move(distance, 0);
 }
 
@@ -181,10 +183,10 @@ void UpdateBackgroundPosition(Sprite& spearMan, Sprite& kaChik, int unitCount, S
 
     float currentX = backgroundSprite.getPosition().x;
     if (playerMovement > 0 && currentX <= -(textureWidth - windowWidth)) {
-        MoveUnits(spearMan, unitCount, 500.0f);
+        MoveUnits(spearMan, 500.0f);
         return;
     } else if (playerMovement < 0 && currentX >= 0) {
-        MoveUnits(spearMan, unitCount, 500.0f);
+        MoveUnits(spearMan, 500.0f);
         return;
     }
     backgroundSprite.move(-playerMovement, 0);
@@ -214,7 +216,7 @@ void StartNewGame(RenderWindow& window, Music& music) {
     Sprite spearMan;
     Sprite kaChik;
     float backgroundWidth = newGameBackgroundSprite.getGlobalBounds().width - 1600.0f;
-    CreateUnits(pngTexture, spearMan, unitCount, scaleFactor, static_cast<float>(window.getSize().y));
+    CreateUnits(pngTexture, spearMan, scaleFactor, static_cast<float>(window.getSize().y));
     CreateKaChik(pngText, kaChik, scaleFactor, static_cast<float>(window.getSize().y) - 75);
     Font font = LoadFont("font/Patapon.ttf");
     Text quitLabel = CreateQuitLabel(font, static_cast<float>(window.getSize().x), static_cast<float>(window.getSize().y));
@@ -308,7 +310,7 @@ void HandleEvents(Sprite& backgroundSprite,Sprite& kaChik, RenderWindow& window,
                     music.play();
                     lastBeatTime = clock.getElapsedTime().asSeconds(); // Update last beat time
                     musicPlayed = true;
-                    MoveUnits(kaChik, unitCount, -100.0f);
+                    MoveUnits(kaChik, -100.0f);
 
                 }
                 inputSequence.clear();
@@ -325,7 +327,7 @@ void HandleEvents(Sprite& backgroundSprite,Sprite& kaChik, RenderWindow& window,
                     music.play();
                     lastBeatTime = clock.getElapsedTime().asSeconds();
                     musicPlayed = true;
-                    MoveUnits(kaChik, unitCount, 100.0f);
+                    MoveUnits(kaChik, 100.0f);
                 }
                 inputSequence.clear();
             }
@@ -360,7 +362,7 @@ void HandleEvents(Sprite& backgroundSprite,Sprite& kaChik, RenderWindow& window,
                 float flightDistance = 500.0f; // Distance to fly
                 float flightSpeed = 400.0f; // Increased speed of the flight
                 float currentDistance = 0.0f; // Distance traveled
-                std::this_thread::sleep_for(std::chrono::milliseconds(500));
+                std::this_thread::sleep_for(std::chrono::milliseconds(450));
 
                 if (!musicPlayed) {
                     if (!music.openFromFile("music/17Attack-02.wav")) {
@@ -485,86 +487,151 @@ void LoadBackgroundSettings(Sprite& backgroundSprite) {
     backgroundSprite.setTexture(newGameTexture);
     backgroundSprite.setPosition(0, -80);
 }
+
+Text CreateInputText(const Font& font, const RenderWindow& window) {
+    Text inputText("", font, 50);
+    inputText.setFillColor(Color::White);
+    inputText.setPosition(static_cast<float>(window.getSize().x) / 2 - 150, static_cast<float>(window.getSize().y) / 2 - 120);
+    return inputText;
+}
+
+Text CreateNamePrompt(const Font& font, const RenderWindow& window) {
+    Text namePrompt("SAY AS YOUR NAME:", font, 50);
+    namePrompt.setFillColor(Color::White);
+    namePrompt.setPosition(static_cast<float>(window.getSize().x) / 2 - 200, static_cast<float>(window.getSize().y) / 2 - 200);
+    return namePrompt;
+}
+
+RectangleShape CreateSubmitButton(const Font& font, const RenderWindow& window) {
+    std::string buttonTextStr = "Submit";
+    Text buttonText(buttonTextStr, font, 25);
+    buttonText.setFillColor(Color::Black);
+
+    float buttonWidth = buttonText.getGlobalBounds().width + 250;
+    float buttonHeight = buttonText.getGlobalBounds().height + 100;
+    RectangleShape button(Vector2f(buttonWidth, buttonHeight));
+    button.setFillColor(Color::Blue);
+    button.setPosition(static_cast<float>(window.getSize().x) / 2 - buttonWidth / 2,
+                       static_cast<float>(window.getSize().y) / 2 - buttonHeight / 2);
+
+    // Center the text within the button
+    buttonText.setPosition(static_cast<float>(window.getSize().x) / 2 - buttonWidth / 2 + (buttonWidth - buttonText.getGlobalBounds().width) / 2,
+                           static_cast<float>(window.getSize().y) / 2 - buttonHeight / 2 + (buttonHeight - buttonText.getGlobalBounds().height) / 2);
+
+    return button;
+}
+
+
+
+RectangleShape CreateSaveButton(const Font& font) {
+    Text saveButtonText("Save", font, 25);
+    saveButtonText.setFillColor(Color::Green);
+
+    float saveButtonWidth = saveButtonText.getGlobalBounds().width +20;
+    float saveButtonHeight = saveButtonText.getGlobalBounds().height + 20;
+    RectangleShape saveButton(Vector2f(saveButtonWidth, saveButtonHeight));
+    saveButton.setFillColor(Color::Blue);
+    saveButton.setPosition(0, 0); // Позиция в верхнем левом углу
+
+    saveButtonText.setPosition(50,50);
+    return saveButton;
+}
+
+Text CreateButtonText(const std::string& text, const Font& font) {
+    Text buttonText(text, font, 25);
+    buttonText.setFillColor(Color::Green);
+
+    return buttonText;
+}
+
+Text CreateNameLabel(const Font& font, const RenderWindow& window) {
+    Text nameLabel("", font, 50);
+    nameLabel.setFillColor(Color::White);
+    nameLabel.setPosition(static_cast<float>(window.getSize().x) / 2 - 200, static_cast<float>(window.getSize().y) / 2 + 100);
+    return nameLabel;
+}
+
+void HandleEvents(RenderWindow& settingsWindow, std::string& playerName, Text& inputText, Text& quitLabel, RectangleShape& button, Text& nameLabel, RectangleShape& saveButton) {
+    Event event{};
+    while (settingsWindow.pollEvent(event)) {
+        if (event.type == Event::Closed) {
+            settingsWindow.close();
+        }
+        if (event.type == Event::TextEntered) {
+            if (event.text.unicode < 128) {
+                if (event.text.unicode == '\b') {
+                    if (!playerName.empty()) {
+                        playerName.pop_back();
+                    }
+                } else {
+                    playerName += static_cast<char>(event.text.unicode);
+                }
+                inputText.setString(playerName);
+            }
+        }
+        if (event.type == Event::MouseButtonPressed) {
+            Vector2i mousePos = Mouse::getPosition(settingsWindow);
+            FloatRect quitLabelBounds = quitLabel.getGlobalBounds();
+            if (quitLabelBounds.contains(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y))) {
+                settingsWindow.close();
+            }
+            if (button.getGlobalBounds().contains(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y))) {
+                nameLabel.setString("OUR HERO NAME: " + playerName);
+            }
+            if (saveButton.getGlobalBounds().contains(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y))) {
+                SavePlayerName(playerName);
+            }
+        }
+    }
+}
+
+void RenderingWindow(RenderWindow& settingsWindow, const Sprite& newGameBackgroundSprite, Text& quitLabel, const Text& inputText, const RectangleShape& button, const RectangleShape& saveButton, const Text& saveButtonText, const Text& nameLabel, const Text& namePrompt) {
+    settingsWindow.clear();
+    settingsWindow.draw(newGameBackgroundSprite);
+    settingsWindow.draw(quitLabel);
+    settingsWindow.draw(inputText);
+    settingsWindow.draw(button);
+    settingsWindow.draw(saveButton);
+    settingsWindow.draw(saveButtonText);
+    settingsWindow.draw(nameLabel);
+    settingsWindow.draw(namePrompt);
+    settingsWindow.display();
+    Vector2i mousePos = Mouse::getPosition(settingsWindow);
+    FloatRect quitLabelBounds = quitLabel.getGlobalBounds();
+    if (quitLabelBounds.contains(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y))) {
+        quitLabel.setFillColor(Color::Red);
+    } else {
+        quitLabel.setFillColor(Color::White);
+    }
+}
 void StartSettings() {
     RenderWindow settingsWindow(VideoMode::getDesktopMode(), "Settings", Style::Resize);
     Sprite newGameBackgroundSprite;
     LoadBackgroundSettings(newGameBackgroundSprite);
     Font font = LoadFont("font/Patapon.ttf");
+
     Text quitLabel = CreateQuitLabel(font, static_cast<float>(settingsWindow.getSize().x), static_cast<float>(settingsWindow.getSize().y));
     std::string playerName;
-    Text inputText("", font, 50);
-    inputText.setFillColor(Color::White);
-    inputText.setPosition(static_cast<float>(settingsWindow.getSize().x) / 2 - 150, static_cast<float>(settingsWindow.getSize().y) / 2 - 100);
-
-    // Create the label for the input field
-    Text namePrompt("SAY AS YOUR NAME:", font, 50);
-    namePrompt.setFillColor(Color::Black);
-    namePrompt.setPosition(static_cast<float>(settingsWindow.getSize().x) / 2 - 150,
-                           static_cast<float>(settingsWindow.getSize().y) / 2 - 150); // Position above the input field
-
-    // Create button
-    std::string buttonTextStr = "Submit";
-    Text buttonText(buttonTextStr, font, 25);
-    buttonText.setFillColor(Color::Black);
-
-    float buttonWidth = buttonText.getGlobalBounds().width + 40;
-    float buttonHeight = buttonText.getGlobalBounds().height + 20;
-    RectangleShape button(Vector2f(buttonWidth, buttonHeight));
-    button.setFillColor(Color::Green);
-    button.setPosition(static_cast<float>(settingsWindow.getSize().x) / 2 - buttonWidth / 2, static_cast<float>(settingsWindow.getSize().y) / 2 + 10);
-
-    buttonText.setPosition(button.getPosition().x + (buttonWidth - buttonText.getGlobalBounds().width) / 2,
-                           button.getPosition().y + (buttonHeight - buttonText.getGlobalBounds().height) / 2);
-
-    Text nameLabel("", font, 50);
-    nameLabel.setFillColor(Color::White);
-    nameLabel.setPosition(static_cast<float>(settingsWindow.getSize().x) / 2 - 150, static_cast<float>(settingsWindow.getSize().y) / 2 + 70);
+    Text inputText = CreateInputText(font, settingsWindow);
+    Text namePrompt = CreateNamePrompt(font, settingsWindow);
+    RectangleShape button = CreateSubmitButton(font, settingsWindow);
+    RectangleShape saveButton = CreateSaveButton(font);
+    Text saveButtonText = CreateButtonText("Save", font);
+    Text nameLabel = CreateNameLabel(font, settingsWindow);
 
     while (settingsWindow.isOpen()) {
-        Event event{};
-        while (settingsWindow.pollEvent(event)) {
-            if (event.type == Event::Closed) {
-                settingsWindow.close();
-            }
-            if (event.type == Event::TextEntered) {
-                if (event.text.unicode < 128) {
-                    if (event.text.unicode == '\b') {
-                        if (!playerName.empty()) {
-                            playerName.pop_back();
-                        }
-                    } else {
-                        playerName += static_cast<char>(event.text.unicode);
-                    }
-                    inputText.setString(playerName);
-                }
-            }
-            if (event.type == Event::MouseButtonPressed) {
-                Vector2i mousePos = Mouse::getPosition(settingsWindow);
-                FloatRect quitLabelBounds = quitLabel.getGlobalBounds();
-                if (quitLabelBounds.contains(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y))) {
-                    settingsWindow.close();
-                }
-                if (button.getGlobalBounds().contains(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y))) {
-                    nameLabel.setString("Name: " + playerName);
-                }
-            }
-        }
-        settingsWindow.clear();
-        settingsWindow.draw(newGameBackgroundSprite);
-        settingsWindow.draw(quitLabel);
-        settingsWindow.draw(inputText);
-        settingsWindow.draw(button);
-        settingsWindow.draw(buttonText);
-        settingsWindow.draw(nameLabel);
-        settingsWindow.draw(namePrompt); // Draw the name prompt
-        settingsWindow.display();
-
-        Vector2i mousePos = Mouse::getPosition(settingsWindow);
-        FloatRect quitLabelBounds = quitLabel.getGlobalBounds();
-        if (quitLabelBounds.contains(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y))) {
-            quitLabel.setFillColor(Color::Red);
-        } else {
-            quitLabel.setFillColor(Color::White);
-        }
+        HandleEvents(settingsWindow, playerName, inputText, quitLabel, button, nameLabel, saveButton);
+        RenderingWindow(settingsWindow, newGameBackgroundSprite, quitLabel, inputText, button, saveButton, saveButtonText, nameLabel, namePrompt);
+    }
+}
+void SavePlayerName(const std::string& playerName) {
+    std::ofstream outFile("files/users.txt");
+    if (outFile.is_open()) {
+        outFile << playerName;
+        outFile.close();
+        MessageBoxA(nullptr, "Saving is complete successfully!", "Saving", MB_OK | MB_ICONASTERISK);
+    } else {
+        // Обработка ошибки открытия файла
+        std::cerr << "Ошибка: не удалось открыть файл для записи." << std::endl;
     }
 }
