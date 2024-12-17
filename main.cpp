@@ -11,6 +11,7 @@
 using namespace sf;
 using namespace std;
 int counter = 0;
+std::string playerName1;
 RenderWindow InitWindow();
 Texture LoadTexture(const std::string& filePath);
 Font LoadFont(const std::string& filePath);
@@ -31,7 +32,6 @@ void InitializeSounds(SoundBuffer& soundBuffer1, SoundBuffer& soundBuffer2,Sound
 //bool CheckInputSequence(char input, std::string& sequence);
 void SavePlayerName(const std::string& playerName);
 //float currentFrame = 0;
-void OpenFileNameNiga(const std::string& playerName);
 int main()
 {
     RenderWindow window = InitWindow();
@@ -571,6 +571,7 @@ Text CreateNameLabel(const Font& font, const RenderWindow& window) {
 
 void HandleEvents(RenderWindow& settingsWindow, std::string& playerName, Text& inputText, Text& quitLabel, RectangleShape& button, Text& nameLabel, RectangleShape& saveButton, RectangleShape& openfileButton) {
     Event event{};
+    nameLabel.setString("OUR HERO NAME: " + playerName1);
     while (settingsWindow.pollEvent(event)) {
         if (event.type == Event::Closed) {
             settingsWindow.close();
@@ -595,6 +596,7 @@ void HandleEvents(RenderWindow& settingsWindow, std::string& playerName, Text& i
             }
             if (button.getGlobalBounds().contains(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y))) {
                 nameLabel.setString("OUR HERO NAME: " + playerName);
+                playerName1 = playerName;
             }
             if (saveButton.getGlobalBounds().contains(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y))) {
                 SavePlayerName(playerName);
@@ -602,6 +604,7 @@ void HandleEvents(RenderWindow& settingsWindow, std::string& playerName, Text& i
             if (openfileButton.getGlobalBounds().contains(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y))) {
                 OpenFileNameNiga(playerName);
                 nameLabel.setString("OUR HERO NAME: " + playerName);
+                playerName1 = playerName;
             }
         }
     }
@@ -656,18 +659,14 @@ void SavePlayerName(const std::string& playerName) {
         outFile.close();
         MessageBoxA(nullptr, "Saving is complete successfully!", "Saving", MB_OK | MB_ICONASTERISK);
     } else {
-        // Обработка ошибки открытия файла
         std::cerr << "Ошибка: не удалось открыть файл для записи." << std::endl;
     }
 }
 void OpenFileNameNiga(std::string& playerName) {
-    // Open a file dialog to select a text file (this part is platform-dependent)
-    // For simplicity, we will assume the file path is provided directly.
-    std::string filePath = "files/users.txt"; // Replace with actual file path if needed
-
+    std::string filePath = "files/users.txt";
     std::ifstream inputFile(filePath);
     if (inputFile.is_open()) {
-        std::getline(inputFile, playerName); // Read the first line (the player's name)
+        std::getline(inputFile, playerName);
         inputFile.close();
     } else {
         std::cerr << "Unable to open file: " << filePath << std::endl;
