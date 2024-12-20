@@ -376,16 +376,13 @@ void HandleEvents(Sprite& backgroundSprite,Sprite& kaChik, RenderWindow& window,
                     musicPlayed = true;
                 }
 
-                // Main loop for the flight
                 while (currentDistance < flightDistance) {
-                    // Handle events (this is crucial for window responsiveness)
                     sf::Event eventer{};
                     while (window.pollEvent(eventer)) {
                         if (eventer.type == sf::Event::Closed)
                             window.close();
                     }
-
-                    speargod.move(flightSpeed * 0.016f, 0); // Move right along the x-axis
+                    speargod.move(flightSpeed * 0.016f, 0);
                     currentDistance += flightSpeed * 0.016f;
 
                     window.draw(backgroundSprite);
@@ -417,8 +414,6 @@ void HandleEvents(Sprite& backgroundSprite,Sprite& kaChik, RenderWindow& window,
             quitLabel.setFillColor(Color::White);
         }
     }
-
-
 
 void isGoing(RenderWindow& window, const Sprite& backgroundSprite, const Text& text, std::vector<Text>& buttonLabels, Music& music)
 {
@@ -562,6 +557,12 @@ Text CreateButtonText1(const std::string& text, const Font& font) {
     buttonText.setPosition(0, 40);
     return buttonText;
 }
+Text CreateButtonText2(const std::string& text, const Font& font) {
+    Text buttonText(text, font, 25);
+    buttonText.setFillColor(Color::Black);
+    buttonText.setPosition(930, 530);
+    return buttonText;
+}
 Text CreateNameLabel(const Font& font, const RenderWindow& window) {
     Text nameLabel("", font, 50);
     nameLabel.setFillColor(Color::White);
@@ -610,7 +611,7 @@ void HandleEvents(RenderWindow& settingsWindow, std::string& playerName, Text& i
     }
 }
 
-void RenderingWindow(RenderWindow& settingsWindow,const RectangleShape& openbutton,const Text& openButtonText, const Sprite& newGameBackgroundSprite, Text& quitLabel, const Text& inputText, const RectangleShape& button, const RectangleShape& saveButton, const Text& saveButtonText, const Text& nameLabel, const Text& namePrompt) {
+void RenderingWindow(RenderWindow& settingsWindow,const Text& submitButtonText,const RectangleShape& openbutton,const Text& openButtonText, const Sprite& newGameBackgroundSprite, Text& quitLabel, const Text& inputText, const RectangleShape& button, const RectangleShape& saveButton, const Text& saveButtonText, const Text& nameLabel, const Text& namePrompt) {
     settingsWindow.clear();
     settingsWindow.draw(newGameBackgroundSprite);
     settingsWindow.draw(quitLabel);
@@ -622,6 +623,7 @@ void RenderingWindow(RenderWindow& settingsWindow,const RectangleShape& openbutt
     settingsWindow.draw(namePrompt);
     settingsWindow.draw(openbutton);
     settingsWindow.draw(openButtonText);
+    settingsWindow.draw(submitButtonText);
     settingsWindow.display();
     Vector2i mousePos = Mouse::getPosition(settingsWindow);
     FloatRect quitLabelBounds = quitLabel.getGlobalBounds();
@@ -647,9 +649,10 @@ void StartSettings() {
     Text nameLabel = CreateNameLabel(font, settingsWindow);
     RectangleShape openbutton = CreateOpenFileButton(font);
     Text openButtonText = CreateButtonText1("Open", font);
+    Text submitButtonText = CreateButtonText2("Submit", font);
     while (settingsWindow.isOpen()) {
         HandleEvents(settingsWindow, playerName, inputText, quitLabel, button, nameLabel, saveButton, openbutton);
-        RenderingWindow(settingsWindow,openbutton,openButtonText, newGameBackgroundSprite, quitLabel, inputText, button, saveButton, saveButtonText, nameLabel, namePrompt);
+        RenderingWindow(settingsWindow,submitButtonText,openbutton,openButtonText, newGameBackgroundSprite, quitLabel, inputText, button, saveButton, saveButtonText, nameLabel, namePrompt);
     }
 }
 void SavePlayerName(const std::string& playerName) {
